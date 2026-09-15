@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import Breadcrumbs from '@/types/breadcrumbs';
 import { PageProps } from '@/types';
-import { Head, usePage } from '@inertiajs/react';
+import { Head, Link, usePage } from '@inertiajs/react';
 import { useState, useEffect } from 'react';
 
 const breadcrumbs: Breadcrumbs = [
@@ -53,9 +53,11 @@ const Icon = {
             <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
         </svg>
     ),
-    Star: () => (
-        <svg viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    ChartBar: () => (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+            <line x1="18" y1="20" x2="18" y2="10" />
+            <line x1="12" y1="20" x2="12" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="14" />
         </svg>
     ),
 };
@@ -77,12 +79,12 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 }
 
 // ── Stat Card ────────────────────────────────────────────────────────────────
-function StatCard({ label, value, icon: IconComp, color, sparkData, change }: {
+function StatCard({ label, value, icon: IconComp, color, sparkData, change, href }: {
     label: string; value: string | number; icon: React.FC;
-    color: string; sparkData: number[]; change: string;
+    color: string; sparkData: number[]; change: string; href?: string;
 }) {
-    return (
-        <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 backdrop-blur-sm p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all duration-300 group">
+    const CardContent = (
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 backdrop-blur-sm p-5 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all duration-300 group cursor-pointer h-full">
             {/* Glow blob */}
             <div className={`absolute -top-6 -right-6 w-24 h-24 rounded-full opacity-10 group-hover:opacity-20 transition-opacity duration-300 blur-2xl`} style={{ background: color }} />
             <div className="flex items-center justify-between">
@@ -97,9 +99,13 @@ function StatCard({ label, value, icon: IconComp, color, sparkData, change }: {
                 <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">{value}</p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-medium uppercase tracking-wide">{label}</p>
             </div>
-            <Sparkline data={sparkData} color={color} />
+            <div className="mt-auto">
+                <Sparkline data={sparkData} color={color} />
+            </div>
         </div>
     );
+
+    return href ? <Link href={href} className="block">{CardContent}</Link> : CardContent;
 }
 
 // ── Recent File Row ───────────────────────────────────────────────────────────
@@ -152,8 +158,9 @@ function ActivityItem({ action, file, time, color }: { action: string; file: str
 }
 
 // ── Main Dashboard ────────────────────────────────────────────────────────────
-export default function Dashboard({ stats, recentFiles, activities }: {
-    stats?: { totalFiles: number; totalViews: number; totalDownloads: number; totalFolders: number };
+export default function Dashboard({ stats, statusCounts, recentFiles, activities }: {
+    stats?: { totalFiles: number; totalViews: number; totalDownloads: number; totalFolders: number; totalArchived?: number };
+    statusCounts?: { active: number; inactive: number; archived: number };
     recentFiles?: any[];
     activities?: any[];
 }) {
@@ -165,16 +172,31 @@ export default function Dashboard({ stats, recentFiles, activities }: {
         setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
     }, []);
 
-    // ── Demo data (replace with real props) ──────────────────────────────────
-    const demoStats = stats ?? { totalFiles: 142, totalViews: 3_840, totalDownloads: 921, totalFolders: 18 };
-    const demoFiles = recentFiles ?? [
+    const userProfile = auth?.user?.profile;
+    const userDept = userProfile?.department?.name;
+    const userDisplayName = [userProfile?.fname, userProfile?.lname].filter(Boolean).join(' ') || auth?.user?.username || 'User';
+
+    // ── Real / fallback props ────────────────────────────────────────────────
+    const totalFiles = stats?.totalFiles ?? 0;
+    const totalViews = stats?.totalViews ?? 0;
+    const totalDownloads = stats?.totalDownloads ?? 0;
+    const totalFolders = stats?.totalFolders ?? 0;
+    const totalArchived = stats?.totalArchived ?? statusCounts?.archived ?? 0;
+
+    const activeFiles = statusCounts?.active ?? (totalFiles - totalArchived > 0 ? totalFiles - totalArchived : 0);
+    const inactiveFiles = statusCounts?.inactive ?? 0;
+    const archivedFiles = statusCounts?.archived ?? totalArchived;
+    const totalTrackedFiles = activeFiles + inactiveFiles + archivedFiles || totalFiles || 1;
+
+    const demoFiles = recentFiles && recentFiles.length > 0 ? recentFiles : [
         { name: 'Annual_Report_2024.pdf', type: 'file', date: '2 hours ago', status: 'active', views: 84, downloads: 22 },
         { name: 'Project_Assets', type: 'folder', date: '5 hours ago', status: 'active', views: 12, downloads: 0 },
         { name: 'Budget_Q1.xlsx', type: 'file', date: 'Yesterday', status: 'active', views: 56, downloads: 10 },
         { name: 'Design_Mockup_v3.png', type: 'file', date: '2 days ago', status: 'inactive', views: 30, downloads: 5 },
         { name: 'Legacy_Docs.docx', type: 'file', date: '1 week ago', status: 'archived', views: 200, downloads: 48 },
     ];
-    const demoActivities = activities ?? [
+
+    const demoActivities = activities && activities.length > 0 ? activities : [
         { action: 'Uploaded', file: 'Annual_Report_2024.pdf', time: '2 hours ago', color: '#3b82f6' },
         { action: 'Downloaded', file: 'Budget_Q1.xlsx', time: '5 hours ago', color: '#22c55e' },
         { action: 'Viewed', file: 'Design_Mockup_v3.png', time: 'Yesterday', color: '#a855f7' },
@@ -183,13 +205,11 @@ export default function Dashboard({ stats, recentFiles, activities }: {
     ];
 
     const statCards = [
-        { label: 'Total Files', value: demoStats.totalFiles, icon: Icon.Files, color: '#3b82f6', change: '+12%', sparkData: [20, 35, 28, 45, 38, 52, 48, 60, 55, 70, 65, 80] },
-        { label: 'Total Views', value: demoStats.totalViews.toLocaleString(), icon: Icon.Eye, color: '#a855f7', change: '+8%', sparkData: [120, 200, 180, 320, 280, 400, 360, 480, 420, 560, 500, 620] },
-        { label: 'Downloads', value: demoStats.totalDownloads.toLocaleString(), icon: Icon.Download, color: '#22c55e', change: '+5%', sparkData: [30, 50, 45, 70, 60, 85, 75, 100, 90, 110, 105, 130] },
-        { label: 'Folders', value: demoStats.totalFolders, icon: Icon.Folder, color: '#f59e0b', change: '+2%', sparkData: [5, 6, 6, 8, 8, 10, 11, 12, 14, 15, 17, 18] },
+        { label: 'Total Files', value: totalFiles, icon: Icon.Files, color: '#3b82f6', change: '+12%', sparkData: [20, 35, 28, 45, 38, 52, 48, 60, 55, 70, 65, 80], href: route('user.file-manager') },
+        { label: 'Total Views', value: totalViews.toLocaleString(), icon: Icon.Eye, color: '#a855f7', change: '+8%', sparkData: [120, 200, 180, 320, 280, 400, 360, 480, 420, 560, 500, 620], href: route('user.reports') },
+        { label: 'Downloads', value: totalDownloads.toLocaleString(), icon: Icon.Download, color: '#22c55e', change: '+5%', sparkData: [30, 50, 45, 70, 60, 85, 75, 100, 90, 110, 105, 130], href: route('user.reports') },
+        { label: 'Archived Files', value: totalArchived.toLocaleString(), icon: Icon.Archive, color: '#f59e0b', change: 'Manage', sparkData: [2, 3, 5, 4, 6, 8, 7, 10, 9, 11, 12, 12], href: route('archived.index') },
     ];
-
-    const username = auth?.user?.username ?? 'User';
 
     return (
         <AuthenticatedLayout
@@ -218,16 +238,33 @@ export default function Dashboard({ stats, recentFiles, activities }: {
                         <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div>
                                 <p className="text-blue-100 text-sm font-medium mb-1">{greeting},</p>
-                                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{username} 👋</h1>
-                                <p className="text-blue-100/80 text-sm mt-2">Here's what's happening with your files today.</p>
+                                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">{userDisplayName} 👋</h1>
+                                <p className="text-blue-100/80 text-sm mt-2">
+                                    {userDept ? `Department: ${userDept} • ` : ''}Here's what's happening with your files today.
+                                </p>
                             </div>
-                            <div className="flex gap-3">
-                                <a
+                            <div className="flex flex-wrap items-center gap-2.5">
+                                <Link
                                     href={route('user.file-manager')}
-                                    className="px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium rounded-xl border border-white/30 transition-all duration-200"
+                                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium rounded-xl border border-white/30 transition-all duration-200 shadow-sm"
                                 >
-                                    My Files
-                                </a>
+                                    <Icon.Files />
+                                    <span>My Files</span>
+                                </Link>
+                                <Link
+                                    href={route('user.reports')}
+                                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium rounded-xl border border-white/30 transition-all duration-200 shadow-sm"
+                                >
+                                    <Icon.ChartBar />
+                                    <span>My Report</span>
+                                </Link>
+                                <Link
+                                    href={route('archived.index')}
+                                    className="inline-flex items-center gap-2 px-3.5 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-sm font-medium rounded-xl border border-white/30 transition-all duration-200 shadow-sm"
+                                >
+                                    <Icon.Archive />
+                                    <span>Archived</span>
+                                </Link>
                             </div>
                         </div>
                     </div>
@@ -237,6 +274,60 @@ export default function Dashboard({ stats, recentFiles, activities }: {
                         {statCards.map((card) => (
                             <StatCard key={card.label} {...card} />
                         ))}
+                    </div>
+
+                    {/* ── Quick Access Hub (Report & Archived) ─────────────── */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <Link
+                            href={route('user.file-manager')}
+                            className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 shadow-sm hover:shadow-md hover:border-blue-400 dark:hover:border-blue-500 transition-all duration-200 group flex items-start gap-4"
+                        >
+                            <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform">
+                                <Icon.Files />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                    My File Manager
+                                </h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Upload, organize and manage all your documents and folders.
+                                </p>
+                            </div>
+                        </Link>
+
+                        <Link
+                            href={route('user.reports')}
+                            className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 shadow-sm hover:shadow-md hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200 group flex items-start gap-4"
+                        >
+                            <div className="p-3 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 group-hover:scale-110 transition-transform">
+                                <Icon.ChartBar />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                    User Reports & Analytics
+                                </h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    View file engagement, upload metrics, and download trends.
+                                </p>
+                            </div>
+                        </Link>
+
+                        <Link
+                            href={route('archived.index')}
+                            className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 shadow-sm hover:shadow-md hover:border-amber-400 dark:hover:border-amber-500 transition-all duration-200 group flex items-start gap-4"
+                        >
+                            <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 group-hover:scale-110 transition-transform">
+                                <Icon.Archive />
+                            </div>
+                            <div>
+                                <h4 className="text-sm font-semibold text-gray-800 dark:text-gray-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                                    Archived & Trash Bin
+                                </h4>
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Restore or permanently clean up archived and deleted files.
+                                </p>
+                            </div>
+                        </Link>
                     </div>
 
                     {/* ── Main Grid ────────────────────────────────────────── */}
@@ -249,9 +340,9 @@ export default function Dashboard({ stats, recentFiles, activities }: {
                                     <span className="text-blue-500"><Icon.Files /></span>
                                     <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Recent Files</h3>
                                 </div>
-                                <a href={route('user.file-manager')} className="text-xs text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
+                                <Link href={route('user.file-manager')} className="text-xs text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium transition-colors">
                                     View all →
-                                </a>
+                                </Link>
                             </div>
                             <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
                                 {demoFiles.map((f, i) => (
@@ -260,40 +351,50 @@ export default function Dashboard({ stats, recentFiles, activities }: {
                             </div>
                         </div>
 
-                        {/* Activity Feed — 1/3 width */}
-                        <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 backdrop-blur-sm shadow-sm p-5">
-                            <div className="flex items-center gap-2 mb-4">
-                                <span className="text-purple-500"><Icon.Activity /></span>
-                                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Recent Activity</h3>
-                            </div>
-                            <div className="relative pl-4 border-l-2 border-gray-100 dark:border-gray-700">
-                                {demoActivities.map((a, i) => (
-                                    <ActivityItem key={i} {...a} />
-                                ))}
-                            </div>
-                        </div>
+{/* Activity Feed — 1/3 width */}
+<div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 backdrop-blur-sm shadow-sm p-4 sm:p-5 w-full">
+    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+        <span className="text-purple-500 shrink-0"><Icon.Activity /></span>
+        <h3 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200 truncate">
+            Recent Activity
+        </h3>
+    </div>
+    <div className="relative pl-3 sm:pl-4 border-l-2 border-gray-100 dark:border-gray-700 space-y-3 sm:space-y-4">
+        {demoActivities.map((a, i) => (
+            <ActivityItem key={i} {...a} />
+        ))}
+    </div>
+</div>
                     </div>
 
-                    {/* ── Storage Overview ─────────────────────────────────── */}
+                    {/* ── Storage Overview & Status ────────────────────────── */}
                     <div className="rounded-2xl border border-gray-200 dark:border-gray-700/60 bg-white dark:bg-gray-800/60 backdrop-blur-sm shadow-sm p-5">
                         <div className="flex items-center justify-between mb-5">
                             <div className="flex items-center gap-2">
                                 <span className="text-amber-500"><Icon.Archive /></span>
                                 <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">File Status Overview</h3>
                             </div>
+                            <div className="flex items-center gap-3">
+                                <Link href={route('user.reports')} className="text-xs text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-medium transition-colors">
+                                    View Full Report →
+                                </Link>
+                                <Link href={route('archived.index')} className="text-xs text-amber-500 hover:text-amber-600 dark:hover:text-amber-400 font-medium transition-colors">
+                                    View Archived ({archivedFiles}) →
+                                </Link>
+                            </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                             {[
-                                { label: 'Active', value: 98, total: 142, color: '#22c55e' },
-                                { label: 'Inactive', value: 32, total: 142, color: '#6b7280' },
-                                { label: 'Archived', value: 12, total: 142, color: '#f59e0b' },
+                                { label: 'Active Files', value: activeFiles, total: totalTrackedFiles, color: '#22c55e', href: route('user.file-manager') },
+                                { label: 'Inactive Files', value: inactiveFiles, total: totalTrackedFiles, color: '#6b7280', href: route('user.file-manager') },
+                                { label: 'Archived Files', value: archivedFiles, total: totalTrackedFiles, color: '#f59e0b', href: route('archived.index') },
                             ].map((item) => {
-                                const pct = Math.round((item.value / item.total) * 100);
+                                const pct = totalTrackedFiles > 0 ? Math.round((item.value / totalTrackedFiles) * 100) : 0;
                                 return (
-                                    <div key={item.label} className="space-y-2">
+                                    <Link key={item.label} href={item.href} className="space-y-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors block">
                                         <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
-                                            <span className="font-medium">{item.label}</span>
-                                            <span>{item.value} files</span>
+                                            <span className="font-medium text-gray-700 dark:text-gray-300">{item.label}</span>
+                                            <span className="font-semibold">{item.value} files</span>
                                         </div>
                                         <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
                                             <div
@@ -301,8 +402,8 @@ export default function Dashboard({ stats, recentFiles, activities }: {
                                                 style={{ width: `${pct}%`, background: item.color }}
                                             />
                                         </div>
-                                        <p className="text-xs text-gray-400">{pct}% of total</p>
-                                    </div>
+                                        <p className="text-xs text-gray-400">{pct}% of files</p>
+                                    </Link>
                                 );
                             })}
                         </div>

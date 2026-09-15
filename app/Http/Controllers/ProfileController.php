@@ -54,11 +54,16 @@ class ProfileController extends Controller
             $avatarPath = $request->file('avatar')->store('avatars', 'public');
         }
 
+        $departmentId = $user->profile?->department_id
+            ?? $request->input('department_id')
+            ?? \App\Models\Department::first()?->id;
+
         // Update profiles table (upsert in case the profile row doesn't exist yet)
         $user->profile()->updateOrCreate(
             ['user_id' => $user->id],
             [
                 'avatar'         => $avatarPath,
+                'department_id'  => $departmentId,
                 'fname'          => $validated['fname'],
                 'mname'          => $validated['mname'] ?? null,
                 'lname'          => $validated['lname'],

@@ -30,7 +30,7 @@ interface ReportProps extends PageProps {
 // ─── Breadcrumbs ──────────────────────────────────────────────────────────────
 
 const breadcrumbs: Breadcrumbs = [
-    { title: "Dashboard", href: route("admin.dashboard") },
+    { title: "Dashboard", href: route("dashboard") },
     { title: "Report Analysis" },
 ];
 

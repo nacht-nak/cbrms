@@ -57,7 +57,7 @@ function formatDate(dateStr?: string): string {
 }
 
 const breadcrumbs = [
-    { title: "Home", href: route("admin.dashboard") },
+    { title: "Home", href: route("dashboard") },
     { title: "Archive" },
 ];
 

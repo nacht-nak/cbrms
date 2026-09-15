@@ -14,6 +14,23 @@ class StoreFileRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if ($this->hasFile('file')) {
+            $uploadedFile = $this->file('file');
+            if (!$this->filled('fileName')) {
+                $this->merge([
+                    'fileName' => pathinfo($uploadedFile->getClientOriginalName(), PATHINFO_FILENAME),
+                ]);
+            }
+            if (!$this->filled('name')) {
+                $this->merge([
+                    'name' => $uploadedFile->getClientOriginalName(),
+                ]);
+            }
+        }
+    }
+
     /**
      * Get the validation rules that apply to the request.
      *
@@ -33,6 +50,13 @@ class StoreFileRequest extends FormRequest
             'authors' => 'nullable|string',
             'publication_date' => 'nullable|date',
             'location' => 'nullable|string',
+        ];
+    }
+
+    public function messages(): array
+    {
+        return [
+            'file.uploaded' => 'The file failed to upload. Please ensure the file does not exceed the server upload limit and try again.',
         ];
     }
 }

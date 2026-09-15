@@ -20,6 +20,12 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/dashboard', function (\Illuminate\Http\Request $request) {
+    return $request->user()->hasRole('admin')
+        ? redirect()->route('admin.dashboard')
+        : redirect()->route('user.dashboard');
+})->middleware(['auth'])->name('dashboard');
+
 Route::middleware('guest')->group(function () {
     Route::get('auth/google',          [GoogleController::class, 'redirect'])->name('auth.google');
     Route::get('auth/google/callback', [GoogleController::class, 'callback'])->name('auth.google.callback');
@@ -41,14 +47,14 @@ Route::get('/verify-credentials/{id}/{hash}', [CredentialVerificationController:
     ->name('verification.verify-credentials')
     ->middleware('signed');
 
-Route::middleware(['auth:sanctum', 'role:admin'])
+Route::middleware(['auth', 'role:admin'])
     ->post('admin/users/{user}/resend-verification', [UserController::class, 'resendVerification'])
     ->name('users.resend-verification');
 
-Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
-
+Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     Route::get('/admin/reports', [ReportController::class, 'index'])->name('admin.reports');
+    Route::get('reports', [ReportController::class, 'index'])->name('admin.reports.alias');
     Route::get('/backup', fn() => inertia('BackupManager'))->name('admin.backup');
 
     Route::get('users', fn() => Inertia::render('Userlist'))->name('users');
@@ -59,33 +65,29 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
 
     Route::get('file-manager/import-excel', [FileImportController::class, 'index'])->name('file-manager.import');
     Route::get('file-manager/{folder}',     [FileController::class, 'show'])->name('file-manager.show');
-
-    // ── File archive action ────────────────────────────────────────────────────
-    Route::patch('files/{file}/archive', [FileController::class, 'archive'])->name('files.archive');
-
-    // ── Archive / Trash management ────────────────────────────────────────────
-    Route::prefix('archived')->group(function () {
-        Route::get('/',              [ArchivedController::class, 'index'])->name('archived.index');
-        Route::get('/list',          [ArchivedController::class, 'list'])->name('archived.list');
-
-        // Bulk actions MUST come before /{file} routes to avoid {file} swallowing "bulk-restore"
-        Route::post('/bulk-restore', [ArchivedController::class, 'bulkRestore'])->name('archived.bulk-restore');
-        Route::delete('/bulk-delete', [ArchivedController::class, 'bulkForceDelete'])->name('archived.bulk-force-delete');
-
-        // Single file actions
-        Route::post('/{file}/restore', [ArchivedController::class, 'restore'])->name('archived.restore');
-        Route::delete('/{file}',      [ArchivedController::class, 'forceDelete'])->name('archived.force-delete');
-    });
 });
 
-Route::middleware(['auth:sanctum', 'role:user'])->prefix('user')->group(function () {
+Route::middleware(['auth', 'role:user'])->prefix('user')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'UserDashboard'])->name('user.dashboard');
-
     Route::get('file-manager', fn() => Inertia::render('FileManager', ['folderId' => null]))->name('user.file-manager');
     Route::get('file-manager/{folder}', [FileController::class, 'show'])->name('user.file-manager.show');
+    Route::get('reports', [ReportController::class, 'userReport'])->name('user.reports');
 });
 
 Route::middleware('auth')->group(function () {
+    // ── File archive action (works for both admin and user, verified by owner/admin) ──
+    Route::patch('files/{file}/archive', [FileController::class, 'archive'])->name('files.archive');
+
+    // ── Archive / Trash management (available to both admin and user) ──────────
+    Route::prefix('archived')->group(function () {
+        Route::get('/',              [ArchivedController::class, 'index'])->name('archived.index');
+        Route::get('/list',          [ArchivedController::class, 'list'])->name('archived.list');
+        Route::post('/bulk-restore', [ArchivedController::class, 'bulkRestore'])->name('archived.bulk-restore');
+        Route::delete('/bulk-delete', [ArchivedController::class, 'bulkForceDelete'])->name('archived.bulk-force-delete');
+        Route::post('/{file}/restore', [ArchivedController::class, 'restore'])->name('archived.restore');
+        Route::delete('/{file}',      [ArchivedController::class, 'forceDelete'])->name('archived.force-delete');
+    });
+
     Route::get('/profile',    [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile',  [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

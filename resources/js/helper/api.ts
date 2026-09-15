@@ -48,19 +48,20 @@ export const uploadFile = async (
         const formData = new FormData();
 
         if (file) {
-            formData.append('name', file.name);
             formData.append('file', file);
         }
 
+        const resolvedFileName = meta.fileName?.trim() || file?.name || '';
+        formData.append('name', file?.name || resolvedFileName);
         formData.append('type', 'file');
-        formData.append('fileName', meta.fileName);
+        formData.append('fileName', resolvedFileName);
 
         if (parentId) formData.append('parent_id', parentId.toString());
 
-        formData.append('description', meta.description);
-        formData.append('authors', meta.authors);
-        formData.append('publication_date', meta.publication_date);
-        formData.append('location', meta.location);
+        if (meta.description?.trim()) formData.append('description', meta.description.trim());
+        if (meta.authors?.trim()) formData.append('authors', meta.authors.trim());
+        if (meta.publication_date?.trim()) formData.append('publication_date', meta.publication_date.trim());
+        if (meta.location?.trim()) formData.append('location', meta.location.trim());
 
         let response;
 
@@ -77,7 +78,15 @@ export const uploadFile = async (
 
         return response.data;
     } catch (error: any) {
-        toast.error(error.response?.data?.message || 'Failed to upload file');
+        const errors = error.response?.data?.errors;
+        let errorMessage = error.response?.data?.message;
+        if (errors) {
+            const firstKey = Object.keys(errors)[0];
+            if (firstKey && errors[firstKey]?.[0]) {
+                errorMessage = errors[firstKey][0];
+            }
+        }
+        toast.error(errorMessage || 'Failed to upload file');
         return null;
     }
 };

@@ -102,20 +102,37 @@ class DashboardController extends Controller
 
         $fileIds = File::where('user_id', $user->id)->pluck('id');
 
+        $activeCount = FileDetails::whereIn('file_id', $fileIds)->where('status', 'active')->count();
+        $inactiveCount = FileDetails::whereIn('file_id', $fileIds)->where('status', 'inactive')->count();
+        $archivedCount = File::where('user_id', $user->id)
+            ->where(function ($q) {
+                $q->whereNotNull('archived_at')
+                  ->orWhereHas('details', fn($d) => $d->where('status', 'archived'));
+            })
+            ->count();
+
         $stats = [
             'totalFiles'     => File::where('user_id', $user->id)
                 ->where('type', 'file')
                 ->count(),
 
-            'totalViews'     => FileDetails::whereIn('file_id', $fileIds)
+            'totalViews'     => (int) FileDetails::whereIn('file_id', $fileIds)
                 ->sum('views'),
 
-            'totalDownloads' => FileDetails::whereIn('file_id', $fileIds)
+            'totalDownloads' => (int) FileDetails::whereIn('file_id', $fileIds)
                 ->sum('downloads'),
 
             'totalFolders'   => File::where('user_id', $user->id)
                 ->where('type', 'folder')
                 ->count(),
+
+            'totalArchived'  => $archivedCount,
+        ];
+
+        $statusCounts = [
+            'active'   => $activeCount,
+            'inactive' => $inactiveCount,
+            'archived' => $archivedCount,
         ];
 
         $recentFiles = File::with('details')
@@ -124,12 +141,12 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(fn($file) => [
-                'name'      => $file->details?->fileName ?? $file->name,  // ✅ details (plural)
+                'name'      => $file->details?->fileName ?? $file->name,
                 'type'      => $file->type,
                 'date'      => $file->created_at->diffForHumans(),
-                'status'    => $file->details?->status ?? 'inactive',      // ✅
-                'views'     => $file->details?->views ?? 0,                // ✅
-                'downloads' => $file->details?->downloads ?? 0,            // ✅
+                'status'    => $file->details?->status ?? 'inactive',
+                'views'     => $file->details?->views ?? 0,
+                'downloads' => $file->details?->downloads ?? 0,
             ]);
 
         $recentActivities = File::with('details')
@@ -138,14 +155,14 @@ class DashboardController extends Controller
             ->take(5)
             ->get()
             ->map(fn($file) => [
-                'action' => match ($file->details?->status) {              // ✅
+                'action' => match ($file->details?->status) {
                     'active'   => 'Uploaded',
                     'archived' => 'Archived',
                     default    => 'Added',
                 },
-                'file'  => $file->details?->fileName ?? $file->name,      // ✅
+                'file'  => $file->details?->fileName ?? $file->name,
                 'time'  => $file->created_at->diffForHumans(),
-                'color' => match ($file->details?->status) {              // ✅
+                'color' => match ($file->details?->status) {
                     'active'   => '#3b82f6',
                     'archived' => '#f59e0b',
                     default    => '#6b7280',
@@ -153,9 +170,10 @@ class DashboardController extends Controller
             ]);
 
         return Inertia::render('User/Dashboard', [
-            'stats'       => $stats,
-            'recentFiles' => $recentFiles,
-            'activities'  => $recentActivities,
+            'stats'        => $stats,
+            'statusCounts' => $statusCounts,
+            'recentFiles'  => $recentFiles,
+            'activities'   => $recentActivities,
         ]);
     }
 }

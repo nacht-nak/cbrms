@@ -470,9 +470,6 @@ export default function IndexFiles() {
     useEffect(() => {
         loadFiles();
 
-        // Poll every 10s to catch uploads, edits, deletes
-        const poll = setInterval(loadFiles, 10_000);
-
         // Laravel Echo: instant update when status changes
         const channel = (window as any).Echo?.channel('files');
         channel?.listen('.FileStatusChanged', (e: { fileId: number; newStatus: Status }) => {
@@ -489,7 +486,6 @@ export default function IndexFiles() {
         });
 
         return () => {
-            clearInterval(poll);
             channel?.stopListening('.FileStatusChanged');
             (window as any).Echo?.leave('files');
         };

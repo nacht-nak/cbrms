@@ -22,9 +22,9 @@ export default function Footer() {
                     </p>
                 </div>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 text-center leading-tight">
-                    Made by{" "}
+                    Develop by{" "}
                     <span className="text-indigo-500 dark:text-indigo-400 font-semibold">
-                        Welquim Panogaling, Angel Sanchez, Mea Cadusale.
+                        Welquim Panogaling.
                     </span>
                 </p>
             </div>
@@ -45,9 +45,9 @@ export default function Footer() {
 
                 {/* Center: Made By */}
                 <p className="text-[11px] text-gray-400 dark:text-gray-500 font-medium text-center">
-                    Made by{" "}
+                    Develop by{" "}
                     <span className="text-indigo-500 dark:text-indigo-400 font-semibold">
-                        Welquim Panogaling, Angel Sanchez, Mea Cadusale.
+                        Welquim Panogaling.
                     </span>
                 </p>
 

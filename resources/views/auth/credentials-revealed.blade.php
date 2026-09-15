@@ -38,7 +38,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">Password</p>
                 <p
                     class="text-sm font-mono font-medium text-gray-800 bg-white border border-gray-200 rounded-lg px-3 py-2 select-all">
-                    {{ $plainPassword }}
+                    {!! $plainPassword !!}
                 </p>
             </div>
         </div>

@@ -24,12 +24,17 @@ class ProfileTest extends TestCase
     public function test_profile_information_can_be_updated(): void
     {
         $user = User::factory()->create();
+        \App\Models\Department::factory()->create();
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => 'test@example.com',
+                'username'  => 'testuser',
+                'email'     => 'test@example.com',
+                'fname'     => 'John',
+                'lname'     => 'Doe',
+                'gender'    => 'male',
+                'birthdate' => '1995-05-15',
             ]);
 
         $response
@@ -38,7 +43,7 @@ class ProfileTest extends TestCase
 
         $user->refresh();
 
-        $this->assertSame('Test User', $user->name);
+        $this->assertSame('testuser', $user->username);
         $this->assertSame('test@example.com', $user->email);
         $this->assertNull($user->email_verified_at);
     }
@@ -46,12 +51,17 @@ class ProfileTest extends TestCase
     public function test_email_verification_status_is_unchanged_when_the_email_address_is_unchanged(): void
     {
         $user = User::factory()->create();
+        \App\Models\Department::factory()->create();
 
         $response = $this
             ->actingAs($user)
             ->patch('/profile', [
-                'name' => 'Test User',
-                'email' => $user->email,
+                'username'  => $user->username,
+                'email'     => $user->email,
+                'fname'     => 'John',
+                'lname'     => 'Doe',
+                'gender'    => 'male',
+                'birthdate' => '1995-05-15',
             ]);
 
         $response

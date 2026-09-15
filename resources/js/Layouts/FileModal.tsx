@@ -81,11 +81,19 @@ export default function FileModal({
         }
     };
 
+    const onSelectFile = (file: File) => {
+        setFileUpload(file);
+        if (!fileMeta.fileName?.trim()) {
+            const cleanName = file.name.replace(/\.[^/.]+$/, "");
+            setFileMeta({ ...fileMeta, fileName: cleanName });
+        }
+    };
+
     const handleDrop = (e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
-        if (file) setFileUpload(file);
+        if (file) onSelectFile(file);
     };
 
     return (
@@ -132,7 +140,7 @@ export default function FileModal({
                         type="file"
                         accept={ACCEPTED_TYPES}
                         className="hidden"
-                        onChange={(e) => e.target.files && setFileUpload(e.target.files[0])}
+                        onChange={(e) => e.target.files?.[0] && onSelectFile(e.target.files[0])}
                     />
                     {fileUpload ? (
                         <div className="flex items-center justify-between">

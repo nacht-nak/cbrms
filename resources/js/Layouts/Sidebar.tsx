@@ -36,6 +36,8 @@ export default function Sidebar({
         user: [
             { name: 'Dashboard', route: 'user.dashboard', icon: HomeIcon },
             { name: 'My File Manager', route: 'user.file-manager', icon: FolderIcon },
+            { name: 'My Report', route: 'user.reports', icon: ChartArea },
+            { name: 'Archived', route: 'archived.index', icon: Archive },
         ],
     };
 

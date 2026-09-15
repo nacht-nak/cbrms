@@ -103,8 +103,6 @@ export default function FolderView() {
     useEffect(() => {
         loadFiles(); // or loadFiles() in FolderView
 
-        const poll = setInterval(loadFiles, 10_000);
-
         const channel = (window as any).Echo?.channel('files');
         channel?.listen('.FileStatusChanged', (e: { fileId: number; newStatus: string }) => {
             setFiles(prev =>
@@ -117,7 +115,6 @@ export default function FolderView() {
         });
 
         return () => {
-            clearInterval(poll);
             channel?.stopListening('.FileStatusChanged');
             (window as any).Echo?.leave('files');
         };

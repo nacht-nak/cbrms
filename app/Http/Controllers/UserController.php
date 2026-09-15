@@ -8,7 +8,7 @@ use App\Mail\UserCredentialsMail;
 use App\Models\User;
 use App\Models\Profile;
 use App\Models\Department;
-use Illuminate\Container\Attributes\Storage;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\URL;
@@ -53,7 +53,7 @@ class UserController extends Controller
         $data = $request->validated();
 
         // Generate a random password
-        $plainPassword = Str::password(12); // e.g. "aB3$xK9!mNqW"
+        $plainPassword = Str::password(12, true, true, false, false); // e.g. "aB3xK9mNqW"
 
         // Create user (email_verified_at is null — unverified)
         $user = User::create([
@@ -192,7 +192,7 @@ class UserController extends Controller
         }
 
         // Generate a new password
-        $plainPassword = Str::password(12);
+        $plainPassword = Str::password(12, true, true, false, false);
 
         // Update the user's password
         $user->update([

@@ -114,28 +114,25 @@ export default function FileManager() {
         setLoading(false);
     };
 
-    useEffect(() => {
-        loadRoot(); // or loadFiles() in FolderView
+useEffect(() => {
+    loadRoot();
 
-        const poll = setInterval(loadRoot, 10_000);
+    const channel = (window as any).Echo?.channel('files');
+    channel?.listen('.FileStatusChanged', (e: { fileId: number; newStatus: string }) => {
+        setFiles(prev =>
+            prev.map(f =>
+                f.id === e.fileId && f.details
+                    ? { ...f, details: { ...f.details, status: e.newStatus as any } }
+                    : f
+            )
+        );
+    });
 
-        const channel = (window as any).Echo?.channel('files');
-        channel?.listen('.FileStatusChanged', (e: { fileId: number; newStatus: string }) => {
-            setFiles(prev =>
-                prev.map(f =>
-                    f.id === e.fileId && f.details
-                        ? { ...f, details: { ...f.details, status: e.newStatus as any } }
-                        : f
-                )
-            );
-        });
-
-        return () => {
-            clearInterval(poll);
-            channel?.stopListening('.FileStatusChanged');
-            (window as any).Echo?.leave('files');
-        };
-    }, []); // FolderView uses [folderId]; FileManager uses []
+    return () => {
+        channel?.stopListening('.FileStatusChanged');
+        (window as any).Echo?.leave('files');
+    };
+}, []);
 
     const goToFolder = (id: number) => router.visit(`${rolePrefix}/file-manager/${id}`);
 
